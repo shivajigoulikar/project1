@@ -1,0 +1,252 @@
+Upload the data into HDFS
+
+hdfs dfs -put ./movies.csv /user/maria_dev/project1/movies/
+
+hdfs dfs -put ./ratings.csv /user/maria_dev/project1/ratings/
+
+hdfs dfs -put ./tags.csv /user/maria_dev/project1/ratings/
+Create tables in HIVE from the uploaded data
+
+=============================================================================
+movies table===>
+
+create external table movies(movieid int, title string, genres array< string >)                                                                                   
+row format delimited                                                                                                                                              
+fields terminated by ','                                                                                                                                          
+location '/user/maria_dev/project1/movies';
+
+ratings table===>
+create external table ratings(userid int, movieid int, rating float, tstamp string)                                                                                         
+row format delimited                                                                                                                                              
+fields terminated by ','                                                                                                                                          
+location '/user/maria_dev/project1/ratings';
+
+tags table==>
+
+create external table tags(userid int, movieid int, tag float, tstamp string)                                                                                         
+row format delimited                                                                                                                                              
+fields terminated by ','                                                                                                                                          
+location '/user/maria_dev/project1/tags';
+
+
+===============================================================================
+
+Write HIVE queries to get the following results:
+
+01. first 5 entries from movies table
+
+select * from movies limit 5;
+
+=================================================================================
+02. number of unique movies
+
+select count(distinct title) from movies;
+
+==========================================================================
+03. summary of ratings data
+select min(rating),max(rating),avg(rating) from ratings;
+
+==========================================================================
+04. minimum rating given to a movie
+
+select min(rating) from ratings; 
+
+============================================================================
+05. maximum rating given to a movie
+select max(rating) from ratings;
+
+
+============================================================================
+06. is any row null in tags
+select isnull(userid), isnull(movieid), isnull(tag), isnull(tstamp)
+from tags;
+
+
+============================================================================
+07. number of unique tags 
+
+select count(distinct tag) from tags;
+
+==============================================================================
+08. drop null rows from tags and create another table of the resulting rows
+
+create table no_null_tags AS select * from tags where movieid IS NOT NULL AND                                                                                     
+userid IS NOT NULL AND                                                                                                                                            
+tag IS NOT NULL AND                                                                                                                                               
+tstamp IS NOT NULL;    
+
+
+
+===============================================================================
+09. filtering to get the list of drama movies
+
+
+ select title,genres from movies where if(array_contains(genres,'Drama'),title,'')=title limit 5; 
+
+
+
+
+
+====================================================================
+
+10. total number of drama movies
+
+select count(*) from movies where if(array_contains(genres,'Drama'),title,'')=title;
+
+
+
+
+
+
+=============================================================================
+
+11. filtering to get the list of comedy movies
+
+
+select title,genres from movies where if(array_contains(genres,'Comedy'),title,'')=title limit 5; 
+
+
+
+
+
+
+
+
+
+
+============================================================================
+12. total no. of comedy movies
+
+
+select count(*) from movies where if(array_contains(genres,'Comedy'),title,'')=title;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+***13. search movie id by tag search
+
+
+select movieid from tags where tag='Disney' limit 5;  
+
+
+
+
+
+
+
+=====================================================================
+
+14. displays first 5 data from ratings table
+
+select * from ratings limit 5;
+
+
+
+
+
+===================================================================================
+
+
+
+
+15. merging two tables movies and ratings into a new table without the "timestamp" column from the ratings table.
+
+select r.userid,m.movieid,m.title,m.genres,r.rating from movies m join ratings r on (m.movieid=r.movieid) limit 5; 
+
+
+
+
+=========================================================================
+
+
+16. display high rated movies (rating > 4)
+
+with h_rate as (select movieid,avg(rating) as e 
+from ratings group by movieid) select m.movieid,m.title,e from h_rate c,movies m where c.movieid=m.movieid and e>4
+ order by e limit 5;  
+
+
+===========================================================================
+
+
+
+17. display low rated movies (rating < 4)
+
+with h_rate as (select movieid,avg(rating) as e
+ from ratings group by movieid) select m.movieid,m.title,e from h_rate c,movies m where c.movieid=m.movieid and e<4
+ order by e limit 5; 
+
+
+======================================================
+
+
+18. total number of unique movie genres
+
+select distinct g from (select explode(genres) as g from movies) as e limit 100;
+
+
+======================================================
+
+19. top 25 most rated movies
+
+select m.title, count(r.movieid) as e from movies m, ratings r                                                                                                    
+where m.movieid=r.movieid group by r.movieid, m.title order by e desc limit 25;
+
+
+
+===================================================================
+
+20. slicing out columns to display only title and genres columns from movies table
+
+
+select title, genres from movies limit 5;
+
+
+
+
+============================================================
+
+
+
+
+21. extract year from title of the movie
+
+select substr(split(title, ' \\(')[1],1,4) from movies limit 5;
+
+
+
+
+==============================================================
+
+
+22. count how many times each of genres occur
+
+select g,count(g) from (select explode(genres) as g from movies) as e group by g;  
+
+
+=======================================================================
+
+
+
+
+23. Which movie received the highest number of ratings?
+
+ select m.title, count(r.movieid) as e from movies m, ratings r                                                                                                    
+ where m.movieid=r.movieid group by r.movieid, m.title order by e desc limit 1;
+
+
+--------------------*******------------
+
+
+
